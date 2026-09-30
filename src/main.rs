@@ -3,25 +3,32 @@ mod bubble;
 mod camera;
 mod export;
 mod macos;
+mod mic;
 mod project;
+mod recording;
+mod region_overlay;
 mod screen;
 
-use gpui::{App, AppContext, Bounds, WindowBounds, WindowOptions, px, size};
+use gpui::{App, AppContext, Bounds, TitlebarOptions, WindowBounds, WindowOptions, px, size};
 use gpui_component::Root;
 
 fn main() {
     gpui_platform::application().run(|cx: &mut App| {
         gpui_component::init(cx);
-        let slot = camera::FrameSlot::default();
-        let bounds = Bounds::centered(None, size(px(420.), px(560.)), cx);
+        let bubble = bubble::Bubble::open(cx).expect("open bubble window");
+        let bounds = Bounds::centered(None, size(px(440.), px(620.)), cx);
         let panel = cx
             .open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    titlebar: Some(TitlebarOptions {
+                        title: Some("Taywind Record".into()),
+                        ..Default::default()
+                    }),
                     ..Default::default()
                 },
                 |window, cx| {
-                    let panel = cx.new(|_| app::Panel::new(slot.clone()));
+                    let panel = cx.new(|cx| app::Panel::new(bubble, window, cx));
                     cx.new(|cx| Root::new(panel, window, cx))
                 },
             )
@@ -33,7 +40,6 @@ fn main() {
             }
         })
         .detach();
-        bubble::Bubble::open(slot, cx).expect("open bubble window");
         cx.activate(true);
     });
 }

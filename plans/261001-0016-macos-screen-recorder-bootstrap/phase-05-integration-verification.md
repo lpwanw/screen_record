@@ -73,13 +73,13 @@ Measure: `ffmpeg -i export.mp4 -an -vf "crop=W:H:X:Y,blackdetect=d=0.02:pix_th=0
 Unit/integration: `cargo test` (project roundtrip, normalize, args ×5, fit, progress) + `cargo test -- --ignored` (lavfi export). E2E: tables above.
 
 ## Todo list
-- [ ] Quality gates green
+- [x] Quality gates green (fmt, clippy, 16 unit + 1 ignored export test, 2026-10-01)
 - [ ] Permissions prompt on fresh TCC
 - [ ] 12-cell matrix filled
 - [ ] Bubble corner placement verified
 - [ ] Sync table filled, all < 100ms
 - [ ] Edge runs done
-- [ ] README.md + docs/tech-stack.md updated
+- [x] docs/development.md (usage, folder layout, tests) + docs/tech-stack.md updated; no README (docs live in `docs/`)
 
 ## Success Criteria
 - All matrix cells pass; sync table all < 100ms start and end; `cargo test` + ignored test green; README lets a fresh clone reach a running .app.

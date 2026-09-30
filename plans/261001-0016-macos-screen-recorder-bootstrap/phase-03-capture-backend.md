@@ -1,6 +1,6 @@
 ---
 title: "Phase 3: Capture backend"
-status: pending
+status: implemented
 effort: 15h
 ---
 
@@ -11,7 +11,7 @@ effort: 15h
 - Docs: `research/researcher-02-capture-api.md` (§1-4), `../reports/researcher-261001-0009-macos-capture-stack.md` (Q2, Q5-Q8).
 
 ## Overview
-- Date: 2026-10-01. Priority: P2. Implementation: Pending. Review: Not reviewed.
+- Date: 2026-10-01. Priority: P2. Implementation: Done (hardware checks pending, Mac locked overnight). Review: Done (`reports/code-reviewer-261001-phase-03-04.md`, 0 critical/high).
 - Grow spike modules into the real backend: screen in 3 modes, mic (cpal→hound + live level), camera recorder + preview, permission helpers, and `recording.rs` orchestrating start/stop of all tracks with host-clock start stamps → `project.json`. No GPUI in these files.
 
 ## Key Insights
@@ -59,14 +59,14 @@ background ──finishing.wait()──> ScreenResult{start_ns,duration,w,h} + c
 8. Manual check per mode (below); trim objc2 features; `cargo clippy`.
 
 ## Todo list
-- [ ] Resolve [U] APIs from crate sources
-- [ ] screen.rs 3 modes + listing + first-PTS + finish
-- [ ] mic.rs writer thread + level
-- [ ] camera.rs recorder + preview (+ fallback if spike e failed)
-- [ ] macos.rs permissions + cmtime_ns
-- [ ] recording.rs start/stop/wait → project.json
-- [ ] app.rs Record/Stop wired with defaults
-- [ ] Manual ffprobe checks pass for display/window/region
+- [x] Resolve [U] APIs from crate sources
+- [x] screen.rs 3 modes + listing + first-PTS (Complete frames only) + finish
+- [x] mic.rs writer thread + level (unit-tested writer)
+- [x] camera.rs device list + open by id (fallback not needed: spike e passed)
+- [x] macos.rs permissions + cmtime_ns + bubble window frame
+- [x] recording.rs start_screen (off main) / attach / stop / wait → project.json
+- [x] app.rs Record/Stop wired (full panel, phase 4)
+- [ ] Manual ffprobe checks pass for display/window/region (needs unlocked Mac)
 
 ## Success Criteria
 - Per mode, 10s recording → dir has `screen.mp4` (hevc, px dims = rect·scale, even; +1 aac track iff sys audio on), `mic.wav`, `camera.mov` (if camera), valid `project.json` (`Project::load` ok, all `start_host_ns` within 1s of each other).
@@ -91,6 +91,12 @@ background ──finishing.wait()──> ScreenResult{start_ns,duration,w,h} + c
 - Recordings local (`~/Movies/Taywind`), user-readable perms default; no network.
 - SCK never set to capture microphone (corrupt-file risk, capture-stack Q2).
 - Window list excludes own process windows; titles only shown locally.
+
+## Implementation notes (2026-10-01)
+- Start order changed: screen first (off main via `recording::start_screen`), then mic + camera on main (`Started::attach`). Screen failure removes the empty folder; nothing else to unwind. Later tracks get `-itsoffset`/`aresample first_pts=0` in export.
+- `chrono` not added: folder name via `libc::localtime_r`.
+- Screen audio presence checked with `export::has_audio` (ffprobe) at stop; missing → `system_audio=false`.
+- objc2 feature trimming skipped (compile time only).
 
 ## Next steps
 Phase 4 builds the real panel, bubble (camera/waveform), and region overlay on these APIs.

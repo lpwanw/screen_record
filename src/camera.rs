@@ -9,16 +9,15 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use block2::RcBlock;
 use dispatch2::{DispatchQueue, DispatchRetained};
 use objc2::{
     AnyThread, DefinedClass, define_class, msg_send,
     rc::Retained,
-    runtime::{AnyObject, Bool, ProtocolObject},
+    runtime::{AnyObject, ProtocolObject},
 };
 use objc2_av_foundation::{
-    AVAuthorizationStatus, AVCaptureConnection, AVCaptureDevice, AVCaptureDeviceDiscoverySession,
-    AVCaptureDeviceInput, AVCaptureDevicePosition, AVCaptureDeviceTypeBuiltInWideAngleCamera,
+    AVCaptureConnection, AVCaptureDevice, AVCaptureDeviceDiscoverySession, AVCaptureDeviceInput,
+    AVCaptureDevicePosition, AVCaptureDeviceTypeBuiltInWideAngleCamera,
     AVCaptureDeviceTypeContinuityCamera, AVCaptureDeviceTypeExternal, AVCaptureFileOutput,
     AVCaptureFileOutputRecordingDelegate, AVCaptureMovieFileOutput, AVCaptureOutput,
     AVCaptureSession, AVCaptureSessionPreset1280x720, AVCaptureVideoDataOutput,
@@ -34,6 +33,14 @@ use objc2_core_video::{
 use objc2_foundation::{
     NSArray, NSDictionary, NSError, NSNumber, NSObject, NSObjectProtocol, NSString, NSURL,
 };
+
+use crate::macos::{self, Access, Media};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Device {
+    pub id: String,
+    pub name: String,
+}
 
 pub struct Frame {
     pub width: u32,
@@ -81,11 +88,8 @@ define_class!(
             start_pts: CMTime,
             _connections: &NSArray<AVCaptureConnection>,
         ) {
-            if start_pts.timescale > 0 {
-                let ns = start_pts.value as i128 * 1_000_000_000 / start_pts.timescale as i128;
-                self.ivars()
-                    .start_host_ns
-                    .store(ns as u64, Ordering::Release);
+            if let Some(ns) = macos::cmtime_ns(start_pts.value, start_pts.timescale) {
+                self.ivars().start_host_ns.store(ns, Ordering::Release);
             }
         }
 
@@ -131,23 +135,27 @@ pub struct CameraRecording {
     start_host_ns: Arc<AtomicU64>,
 }
 
-/// @return `Ok(None)` when no camera is connected
-pub fn open(slot: FrameSlot) -> anyhow::Result<Option<Camera>> {
-    let video = unsafe { AVMediaTypeVideo }.context("AVMediaTypeVideo missing")?;
-    match unsafe { AVCaptureDevice::authorizationStatusForMediaType(video) } {
-        AVAuthorizationStatus::Authorized => {}
-        AVAuthorizationStatus::NotDetermined => {
-            let ignore = RcBlock::new(|_granted: Bool| {});
-            unsafe { AVCaptureDevice::requestAccessForMediaType_completionHandler(video, &ignore) };
-            return Err(anyhow!(
-                "camera permission requested; reopen the app after granting"
-            ));
-        }
-        _ => return Err(anyhow!("camera permission denied in System Settings")),
-    }
-    let Some(device) = first_device() else {
-        return Ok(None);
-    };
+/// @return built-in, external and Continuity cameras
+pub fn devices() -> Vec<Device> {
+    discover()
+        .iter()
+        .map(|device| unsafe {
+            Device {
+                id: device.uniqueID().to_string(),
+                name: device.localizedName().to_string(),
+            }
+        })
+        .collect()
+}
+
+/// Starts the preview feeding `slot`; requires camera permission.
+pub fn open(id: &str, slot: FrameSlot) -> anyhow::Result<Camera> {
+    anyhow::ensure!(
+        macos::av_access(Media::Camera) == Access::Granted,
+        "camera permission not granted"
+    );
+    let device = unsafe { AVCaptureDevice::deviceWithUniqueID(&NSString::from_str(id)) }
+        .context("camera disconnected")?;
 
     let delegate = CameraDelegate::new(Ivars {
         slot,
@@ -185,16 +193,16 @@ pub fn open(slot: FrameSlot) -> anyhow::Result<Option<Camera>> {
         session.commitConfiguration();
         session.startRunning();
     }
-    Ok(Some(Camera {
+    Ok(Camera {
         session,
         movie,
         frames,
         delegate,
         _queue: queue,
-    }))
+    })
 }
 
-fn first_device() -> Option<Retained<AVCaptureDevice>> {
+fn discover() -> Retained<NSArray<AVCaptureDevice>> {
     unsafe {
         let types = NSArray::from_slice(&[
             AVCaptureDeviceTypeBuiltInWideAngleCamera,
@@ -207,7 +215,6 @@ fn first_device() -> Option<Retained<AVCaptureDevice>> {
             AVCaptureDevicePosition::Unspecified,
         )
         .devices()
-        .firstObject()
     }
 }
 
@@ -242,7 +249,9 @@ impl CameraRecording {
             .recv_timeout(Duration::from_secs(10))
             .context("camera recording did not finish")?
             .map_err(|error| anyhow!("camera recording failed: {error}"))?;
-        Ok(self.start_host_ns.load(Ordering::Acquire))
+        let start = self.start_host_ns.load(Ordering::Acquire);
+        anyhow::ensure!(start > 0, "camera recording reported no start time");
+        Ok(start)
     }
 }
 

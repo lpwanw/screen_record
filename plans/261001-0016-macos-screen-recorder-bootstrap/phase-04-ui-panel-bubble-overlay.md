@@ -1,6 +1,6 @@
 ---
 title: "Phase 4: UI - panel, bubble, region overlay"
-status: pending
+status: implemented
 effort: 12h
 ---
 
@@ -11,7 +11,7 @@ effort: 12h
 - Docs: `research/researcher-01-gpui-api.md` (§3-7), `../reports/researcher-261001-0009-gpui-ui-framework.md` (§2-3).
 
 ## Overview
-- Date: 2026-10-01. Priority: P2. Implementation: Pending. Review: Not reviewed.
+- Date: 2026-10-01. Priority: P2. Implementation: Done (walk-through pending, Mac locked overnight). Review: Done (`reports/code-reviewer-261001-phase-03-04.md`).
 - Real control panel, final bubble (camera image or mic waveform, drag, bounds for project.json), region drag-select overlay. All GPUI code lives only in `main.rs`, `app.rs`, `bubble.rs`, `region_overlay.rs`.
 
 ## Key Insights
@@ -56,16 +56,17 @@ effort: 12h
 8. Manual walk-through of acceptance 1-4 on both displays; `cargo clippy`.
 
 ## Todo list
-- [ ] gpui-component APIs confirmed from source
-- [ ] Bubble: camera image, waveform, drag, window number, bounds
-- [ ] Panel: selections, permissions, banners
-- [ ] Record/Stop with elapsed + disabled inputs
-- [ ] Region overlay: drag, commit, Esc/right-click cancel
-- [ ] Export progress + Open folder + errors
-- [ ] Close-while-recording saves recording
+- [x] gpui-component APIs confirmed from source (Select/SelectEvent, RadioGroup, Switch, Progress 0-100)
+- [x] Bubble: camera image, waveform (chord-bounded bars), drag, global frame via NSWindow
+- [x] Panel: selections, permissions, banners
+- [x] Record/Stop with elapsed + disabled inputs
+- [x] Region overlay: drag, commit, Esc/right-click cancel (Esc delivery to PopUp unverified)
+- [x] Export progress + Open folder + errors
+- [x] Close-while-recording saves recording
 
-- [ ] From phase-1 review: start path async (SCShareableContent::get + start_capture off main thread, camera start back on main)
-- [ ] From phase-1 review: errors to UI instead of `expect` (no display, recording path); camera permission grant callback re-opens camera without relaunch; `startRunning` off main thread
+- [x] From phase-1 review: start path async (SCShareableContent::get + start_capture off main thread, camera start back on main)
+- [x] From phase-1 review: errors to UI; camera/mic grant callback re-opens device without relaunch
+- [ ] `startRunning` off main thread (deferred: ~0.5s on camera switch only)
 
 ## Success Criteria
 - Acceptance 1-4 pass by hand: fresh TCC (`tccutil reset All dev.taywind.record`) shows 3 prompts; lists populated; overlay selects region on each display; bubble drags and shows camera / waveform reacting to voice within ~100ms.
@@ -86,6 +87,11 @@ effort: 12h
 - Permission denied paths degrade gracefully (banner, track disabled), never crash.
 - `open <dir>` via `Command` args, no shell.
 - Window titles from other apps shown only locally.
+
+## Implementation notes (2026-10-01)
+- GPUI window bounds are display-local and display bounds report origin 0 → bubble frame read from NSWindow (`raw-window-handle` + `macos::window_frame`), flipped to Quartz global points.
+- Defaults chosen while user away (review questions): bubble outside capture rect is clamped to the nearest edge (face stays visible); Dock Quit / logout mid-recording is not handled (only panel close finishes the recording first).
+- Only the last recording of the session can be exported (no "open recording" UI in v1).
 
 ## Next steps
 Phase 5 end-to-end matrix, sync calibration, docs.

@@ -179,6 +179,24 @@ pub fn parse_progress(line: &str, duration_s: f64) -> Option<f32> {
     Some((micros / 1e6 / duration_s).clamp(0.0, 1.0) as f32)
 }
 
+/// @return whether `file` has an audio stream, `None` when ffprobe is unavailable or fails
+pub fn has_audio(file: &Path) -> Option<bool> {
+    let output = Command::new(tool("ffprobe")?)
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "a",
+            "-show_entries",
+            "stream=index",
+        ])
+        .args(["-of", "csv=p=0"])
+        .arg(file)
+        .output()
+        .ok()?;
+    output.status.success().then_some(!output.stdout.is_empty())
+}
+
 /// Looks in PATH, then Homebrew locations, since apps launched from Finder get a minimal PATH.
 /// @return absolute path of the command-line tool, if installed
 pub fn tool(name: &str) -> Option<PathBuf> {

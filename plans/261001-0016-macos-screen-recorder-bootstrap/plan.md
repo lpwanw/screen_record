@@ -19,9 +19,9 @@ macOS 15+ Rust app for product demos. GPUI control panel + always-on-top circle 
 |---|-------|--------|--------|----------|
 | 1 | [Spike + foundation](./phase-01-spike-foundation.md) | Done | 12h | 100% |
 | 2 | [Project model + export](./phase-02-project-model-export.md) | Done | 7h | 100% |
-| 3 | [Capture backend](./phase-03-capture-backend.md) | Pending | 15h | 0% |
-| 4 | [UI: panel, bubble, region overlay](./phase-04-ui-panel-bubble-overlay.md) | Pending | 12h | 0% |
-| 5 | [Integration + verification](./phase-05-integration-verification.md) | Pending | 6h | 0% |
+| 3 | [Capture backend](./phase-03-capture-backend.md) | Implemented, hw check pending | 15h | 90% |
+| 4 | [UI: panel, bubble, region overlay](./phase-04-ui-panel-bubble-overlay.md) | Implemented, hw check pending | 12h | 90% |
+| 5 | [Integration + verification](./phase-05-integration-verification.md) | Gates + docs done; hw matrix pending | 6h | 30% |
 
 ## Dependencies
 - Strictly sequential 1 → 2 → 3 → 4 → 5 (shared `Cargo.toml`, `src/main.rs` mod lines; single dev).
