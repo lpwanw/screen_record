@@ -125,7 +125,12 @@ impl Panel {
             .and_then(|name| mics.iter().position(|mic| *mic == name))
             .or((!mics.is_empty()).then_some(0));
 
-        let display_select = choices(display_names(&displays), Some(0), window, cx);
+        let display_select = choices(
+            display_names(&displays),
+            (!displays.is_empty()).then_some(0),
+            window,
+            cx,
+        );
         let window_select = choices(Vec::new(), None, window, cx);
         let camera_select = choices(
             with_none(cameras.iter().map(|camera| camera.name.clone())),
