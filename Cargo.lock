@@ -6542,6 +6542,8 @@ dependencies = [
  "objc2-core-video",
  "objc2-foundation 0.3.2",
  "screencapturekit 11.0.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

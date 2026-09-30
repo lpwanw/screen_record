@@ -1,7 +1,9 @@
 mod app;
 mod bubble;
 mod camera;
+mod export;
 mod macos;
+mod project;
 mod screen;
 
 use gpui::{App, AppContext, Bounds, WindowBounds, WindowOptions, px, size};

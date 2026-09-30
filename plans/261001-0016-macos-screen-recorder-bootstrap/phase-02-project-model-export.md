@@ -1,6 +1,6 @@
 ---
 title: "Phase 2: Project model + export"
-status: pending
+status: done
 effort: 7h
 ---
 
@@ -11,7 +11,7 @@ effort: 7h
 - Docs: `../reports/researcher-261001-0009-export-compositing.md` (verified cmds lines 12-33, alignment line 39, progress line 42).
 
 ## Overview
-- Date: 2026-10-01. Priority: P2. Implementation: Pending. Review: Not reviewed.
+- Date: 2026-10-01. Priority: P2. Implementation: Done. Review: Done (`reports/code-reviewer-261001-phase-02.md`, 0 critical; late-start single audio source fixed with `aresample=48000:async=1:first_pts=0`, covered by ignored test).
 - Pure logic, no hardware: `project.json` model + bubble normalization, ffmpeg arg builder (one fn), progress parser, ffmpeg locator + runner. `cargo test` covers roundtrip + args; `#[ignore]` lavfi test proves the graph runs.
 
 ## Key Insights (verified with ffmpeg 8.0.1 on synthetic 5K inputs, 2026-10-01)
@@ -48,7 +48,7 @@ normalize_bubble(bubble: Rect, frame: Rect) -> Bubble // clamp d ≤ min(1, h/w)
 1. Inputs: `0` = screen (anchor). Camera, mic: offset d = `offset_s`; d > 0.001 → `-itsoffset d`; d < -0.001 → `-ss -d`; `{:.3}`.
 2. `(W,H) = fit_even(width,height)`; `[0:v]fps=FPS,scale=W:H[s]`.
 3. D = even(d·W), X = round(x·W), Y = round(y·H). Camera → `[c:v]scale=D:D:force_original_aspect_ratio=increase,crop=D:D,format=yuva420p,geq=…[b]`. Else mic → `[m:a]asplit=2[ma][mw]` + waveform disc `[b]`. Then `[s][b]overlay=x=X:y=Y:format=auto[v]`; neither → `[s]` is `[v]`.
-4. Audio sources: `[0:a]` if system_audio, mic (`[ma]` or `[m:a]`). 0 → `-an`; 1 → `aresample=48000,apad[a]`; 2 → each `aresample=48000` → `amix=inputs=2:normalize=0:duration=longest,apad[a]`.
+4. Audio sources: `[0:a]` if system_audio, mic (`[ma]` or `[m:a]`). 0 → `-an`; else each `aresample=48000:async=1:first_pts=0` (pads late starts) → `amix=inputs=N:normalize=0:duration=longest,apad[a]`.
 5. Output: `-map [v] [-map [a]] -t duration_s -c:v h264_videotoolbox -b:v 20M -pix_fmt yuv420p -tag:v avc1 [-c:a aac -b:a 192k] -movflags +faststart -progress pipe:1 -nostats -y out`.
 - `fit_even(w,h)`: box (3840,2160) if w≥h else (2160,3840); s = min(1, bw/w, bh/h); round each to even.
 - `parse_progress(line, duration_s) -> Option<f32>`: `out_time_us=N` → (N/1e6/duration).clamp(0,1); `progress=end` → 1.0; else None.
@@ -71,11 +71,11 @@ normalize_bubble(bubble: Rect, frame: Rect) -> Bubble // clamp d ≤ min(1, h/w)
 5. `#[ignore] export_runs_on_synthetic_inputs`: temp dir (`std::env::temp_dir()` + pid); ffmpeg lavfi makes sparse VFR `screen.mp4` (testsrc2 r=2 + sine, hevc_videotoolbox), `camera.mov`, `mic.wav`; write project.json with offsets; `run`; ffprobe: 1 video + 1 audio, duration within 0.1s of `duration_s`, frames ≈ duration·FPS.
 
 ## Todo list
-- [ ] project.rs model + load/save + offset_s + normalize_bubble
-- [ ] export.rs ffmpeg_args + fit_even
-- [ ] parse_progress + tool + run
-- [ ] unit tests green (`cargo test`)
-- [ ] ignored integration test green (`cargo test -- --ignored`)
+- [x] project.rs model + load/save + offset_s + normalize_bubble
+- [x] export.rs ffmpeg_args + fit_even
+- [x] parse_progress + tool + run
+- [x] unit tests green (`cargo test`)
+- [x] ignored integration test green (`cargo test -- --ignored`)
 
 ## Success Criteria
 - `cargo test` passes with no ffmpeg dependency; `cargo test -- --ignored` passes on dev box.

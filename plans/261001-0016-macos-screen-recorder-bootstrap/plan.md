@@ -1,7 +1,7 @@
 ---
 title: "taywind_record bootstrap: macOS screen recorder (Rust + GPUI)"
 description: "Record display/window/region with a floating camera-or-waveform bubble into separate tracks, then export one composited mp4 via ffmpeg."
-status: pending
+status: in-progress
 priority: P2
 effort: 52h
 branch: main
@@ -18,7 +18,7 @@ macOS 15+ Rust app for product demos. GPUI control panel + always-on-top circle 
 | # | Phase | Status | Effort | Progress |
 |---|-------|--------|--------|----------|
 | 1 | [Spike + foundation](./phase-01-spike-foundation.md) | Done | 12h | 100% |
-| 2 | [Project model + export](./phase-02-project-model-export.md) | Pending | 7h | 0% |
+| 2 | [Project model + export](./phase-02-project-model-export.md) | Done | 7h | 100% |
 | 3 | [Capture backend](./phase-03-capture-backend.md) | Pending | 15h | 0% |
 | 4 | [UI: panel, bubble, region overlay](./phase-04-ui-panel-bubble-overlay.md) | Pending | 12h | 0% |
 | 5 | [Integration + verification](./phase-05-integration-verification.md) | Pending | 6h | 0% |

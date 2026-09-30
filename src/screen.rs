@@ -19,7 +19,7 @@ use screencapturekit::{
     shareable_content::SCShareableContentInfo,
 };
 
-pub const FPS: u32 = 60;
+use crate::project::{FPS, even};
 
 pub struct ScreenRecording {
     stream: SCStream,
@@ -112,8 +112,4 @@ impl ScreenRecording {
         stopped?;
         Ok(self.first_frame_host_ns.load(Ordering::Acquire))
     }
-}
-
-fn even(pixels: f64) -> u32 {
-    (pixels.round() as u32) & !1
 }
