@@ -79,7 +79,7 @@ Unit/integration: `cargo test` (project roundtrip, normalize, args ×5, fit, pro
 - [ ] Bubble corner placement verified
 - [ ] Sync table filled, all < 100ms
 - [ ] Edge runs done
-- [x] docs/development.md (usage, folder layout, tests) + docs/tech-stack.md updated; no README (docs live in `docs/`)
+- [x] README.md + docs/development.md (usage, folder layout, tests) + docs/tech-stack.md updated
 
 ## Success Criteria
 - All matrix cells pass; sync table all < 100ms start and end; `cargo test` + ignored test green; README lets a fresh clone reach a running .app.

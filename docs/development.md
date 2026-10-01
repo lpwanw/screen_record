@@ -48,9 +48,10 @@ TCC keys permissions on the signing certificate; ad-hoc signatures change every 
 openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 3650 -subj "/CN=Taywind Dev" \
   -addext "basicConstraints=critical,CA:false" -addext "keyUsage=critical,digitalSignature" \
   -addext "extendedKeyUsage=critical,codeSigning"
-openssl pkcs12 -export -legacy -inkey key.pem -in cert.pem -out id.p12 -passout pass:taywind
-security import id.p12 -k ~/Library/Keychains/login.keychain-db -P taywind -T /usr/bin/codesign
-rm key.pem cert.pem id.p12
+P12_PASS=$(openssl rand -hex 16)
+openssl pkcs12 -export -legacy -inkey key.pem -in cert.pem -out id.p12 -passout "pass:$P12_PASS"
+security import id.p12 -k ~/Library/Keychains/login.keychain-db -P "$P12_PASS" -T /usr/bin/codesign
+rm key.pem cert.pem id.p12; unset P12_PASS
 security find-identity -p codesigning   # lists "Taywind Dev" (CSSMERR_TP_NOT_TRUSTED is fine)
 ```
 
