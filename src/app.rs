@@ -95,6 +95,42 @@ fn with_none(names: impl IntoIterator<Item = String>) -> Vec<SharedString> {
         .collect()
 }
 
+fn default_mic(mics: &[String]) -> Option<usize> {
+    mic::default_input()
+        .and_then(|name| mics.iter().position(|mic| *mic == name))
+        .or((!mics.is_empty()).then_some(0))
+}
+
+/// Replaces `current` with `fresh`, keeping the chosen item when it is still listed.
+/// @return whether the chosen item changed
+fn sync_choices<T: Clone + PartialEq>(
+    current: &mut Vec<T>,
+    fresh: Vec<T>,
+    select: &Choices,
+    label: impl Fn(&T) -> String,
+    fallback: Option<usize>,
+    window: &mut Window,
+    cx: &mut App,
+) -> bool {
+    if *current == fresh {
+        return false;
+    }
+    let before = chosen(select, cx)
+        .and_then(|row| row.checked_sub(1))
+        .and_then(|i| current.get(i).cloned());
+    let index = before
+        .as_ref()
+        .and_then(|item| fresh.iter().position(|candidate| candidate == item))
+        .or(fallback);
+    let names = with_none(fresh.iter().map(label));
+    *current = fresh;
+    select.update(cx, |select, cx| {
+        select.set_items(names, window, cx);
+        select.set_selected_index(Some(IndexPath::new(index.map_or(0, |i| i + 1))), window, cx);
+    });
+    index.map(|i| &current[i]) != before.as_ref()
+}
+
 fn display_names(displays: &[screen::Display]) -> Vec<SharedString> {
     displays
         .iter()
@@ -121,9 +157,7 @@ impl Panel {
         };
         let cameras = camera::devices();
         let mics = mic::input_devices();
-        let default_mic = mic::default_input()
-            .and_then(|name| mics.iter().position(|mic| *mic == name))
-            .or((!mics.is_empty()).then_some(0));
+        let default_mic = default_mic(&mics);
 
         let display_select = choices(
             display_names(&displays),
@@ -170,7 +204,7 @@ impl Panel {
                 .update(cx, |panel, cx| panel.close_requested(cx))
                 .unwrap_or(true)
         });
-        Self::tick(cx);
+        Self::tick(window, cx);
 
         let mut panel = Self {
             bubble,
@@ -201,15 +235,18 @@ impl Panel {
         panel
     }
 
-    fn tick(cx: &mut Context<Self>) {
-        cx.spawn(async move |this, cx| {
-            loop {
+    fn tick(window: &Window, cx: &mut Context<Self>) {
+        cx.spawn_in(window, async move |this, cx| {
+            for tick in 1u64.. {
                 cx.background_executor()
                     .timer(Duration::from_millis(500))
                     .await;
-                let alive = this.update(cx, |this, cx| {
+                let alive = this.update_in(cx, |this, window, cx| {
                     if matches!(this.state, State::Recording { .. }) {
                         cx.notify();
+                    }
+                    if tick % 4 == 0 && !this.busy() {
+                        this.refresh_devices(window, cx);
                     }
                 });
                 if alive.is_err() {
@@ -228,6 +265,35 @@ impl Panel {
         let message = message.into();
         eprintln!("{message}");
         self.error = Some(message);
+    }
+
+    fn refresh_devices(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let cameras = camera::devices();
+        let first_camera = (!cameras.is_empty()).then_some(0);
+        if sync_choices(
+            &mut self.cameras,
+            cameras,
+            &self.camera_select,
+            |device| device.name.clone(),
+            first_camera,
+            window,
+            cx,
+        ) {
+            self.open_camera(cx);
+        }
+        let mics = mic::input_devices();
+        let fallback = default_mic(&mics);
+        if sync_choices(
+            &mut self.mics,
+            mics,
+            &self.mic_select,
+            String::clone,
+            fallback,
+            window,
+            cx,
+        ) {
+            self.open_mic(cx);
+        }
     }
 
     fn open_camera(&mut self, cx: &mut Context<Self>) {
