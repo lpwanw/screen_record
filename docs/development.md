@@ -17,6 +17,17 @@ Always launch the `.app` (not `cargo run`): macOS privacy permissions (TCC) atta
 
 `codesign` needs the Mac unlocked; the first run after creating the identity asks for keychain access (choose "Always Allow").
 
+## Share as DMG
+```sh
+./scripts/bundle.sh --dmg
+```
+Writes `dist/TaywindRecord.dmg` (release build, Apple Silicon only, signed with `Taywind Dev`, not notarized). Keep signing with the same identity so recipients keep their permission grants across updates.
+
+Recipients:
+1. Open the DMG and drag Taywind Record to Applications.
+2. Launch it once; macOS blocks it. Open System Settings → Privacy & Security → **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/TaywindRecord.app`).
+3. `brew install ffmpeg` for export.
+
 ## Using the app
 1. First launch asks for Screen Recording (relaunch after granting), Camera and Microphone.
 2. Pick **Display**, **Window** (Refresh lists windows) or **Region** (Select region… then drag; Esc or right-click cancels).

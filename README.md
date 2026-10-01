@@ -25,6 +25,8 @@ This builds, signs and launches `dist/TaywindRecord.app`. Logs go to `~/Library/
 - Unlock the Mac before running it. The first signing shows a keychain prompt; choose **Always Allow**.
 - On first launch, grant Screen Recording and then relaunch. Grant Camera and Microphone when asked.
 
+To share the app, `./scripts/bundle.sh --dmg` writes `dist/TaywindRecord.dmg`; see [docs/development.md](docs/development.md#share-as-dmg) for what recipients need to do.
+
 ## Usage
 1. Choose **Display**, **Window** or **Region**. For Region, click **Select region…**, then drag; right-click cancels.
 2. Choose a camera and a microphone (or None), and set **System audio**. Drag the bubble to where it should appear in the video.
